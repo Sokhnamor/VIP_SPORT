@@ -1,0 +1,6 @@
+# Racine du dépôt GymManager
+.DS_Store
+Thumbs.db
+/.idea
+/.vscode
+/backups
