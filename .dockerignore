@@ -1,0 +1,15 @@
+.git
+**/node_modules
+backend/vendor
+backend/.env
+backend/storage/logs/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/app/private/*
+backend/storage/app/backups/*
+backend/database/*.sqlite
+frontend/dist
+backups
+.env
+*.log

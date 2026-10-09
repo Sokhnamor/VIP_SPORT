@@ -1,0 +1,64 @@
+# GymManager — environnement complet : docker compose up -d --build
+# Interface : http://localhost:8080   ·   Mailpit : http://localhost:8025
+services:
+  app:
+    build: { context: ., dockerfile: docker/php/Dockerfile }
+    env_file: .env
+    environment:
+      GYM_ROLE: app
+    volumes:
+      - storage:/var/www/backend/storage/app
+      - ./backups:/backups
+    depends_on:
+      db: { condition: service_healthy }
+    restart: unless-stopped
+
+  # Tâches planifiées : clôture des présences, sauvegarde quotidienne
+  scheduler:
+    build: { context: ., dockerfile: docker/php/Dockerfile }
+    env_file: .env
+    environment:
+      GYM_ROLE: scheduler
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - storage:/var/www/backend/storage/app
+      - ./backups:/backups
+    depends_on:
+      app: { condition: service_started }
+    restart: unless-stopped
+
+  web:
+    build: { context: ., dockerfile: docker/web/Dockerfile }
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.4
+    # Triggers d'immuabilité (paiements, audit) : autorisés malgré le binlog.
+    command: ["--log-bin-trust-function-creators=1", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--default-time-zone=+00:00"]
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-gymmanager}
+      MYSQL_USER: ${DB_USERNAME:-gymmanager}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Définissez DB_PASSWORD dans .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Définissez DB_ROOT_PASSWORD dans .env}
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+    restart: unless-stopped
+
+volumes:
+  dbdata:
+  storage:
