@@ -1,3 +1,4 @@
+import { Printer, Receipt } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router'
@@ -25,7 +26,7 @@ export default function Receipts() {
 
   return (
     <div>
-      <PageHeader title="Reçus" subtitle={user?.role === 'admin' ? 'Tous les encaissements' : 'Mes encaissements'} />
+      <PageHeader eyebrow="Encaissements" title="Reçus" subtitle={user?.role === 'admin' ? 'Tous les encaissements, réimpression en un clic.' : 'Mes encaissements, réimpression en un clic.'} />
       <Card>
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="N° de reçu ou référence"><Input type="search" value={q} onChange={(e) => { setQ(e.target.value); setPage(1) }} /></Field>
@@ -40,12 +41,12 @@ export default function Receipts() {
         </div>
 
         {payments.isLoading && <Loading />}
-        {payments.data?.data.length === 0 && <Empty>Aucun reçu.</Empty>}
+        {payments.data?.data.length === 0 && <Empty icon={Receipt}>Aucun reçu sur cette période.</Empty>}
         {payments.data && payments.data.data.length > 0 && (
           <Table head={['Reçu', 'Date', 'Membre', 'Formule', 'Montant', 'Mode', 'Encaisseur', '']}>
             {payments.data.data.map((p) => (
               <tr key={p.id} className={p.annule ? 'opacity-60' : ''}>
-                <Td><Link to={`/recus/${p.id}`} className="font-semibold hover:underline">{p.numero_recu}</Link></Td>
+                <Td><Link to={`/recus/${p.id}`} className="tabular font-bold text-slate-900 hover:underline dark:text-white">{p.numero_recu}</Link></Td>
                 <Td className="whitespace-nowrap">{dateTime(p.created_at)}</Td>
                 <Td>{p.member ? <Link to={`/membres/${p.member.id}`} className="hover:underline">{p.member.nom_complet}</Link> : 'Ticket séance'}</Td>
                 <Td>{p.plan?.nom}</Td>
@@ -56,7 +57,7 @@ export default function Receipts() {
                 </Td>
                 <Td>{p.encaisseur?.nom}</Td>
                 <Td className="whitespace-nowrap">
-                  {p.annule ? <Badge tone="red">Annulé</Badge> : <Button variant="ghost" onClick={() => openDocument(`payments/${p.id}/receipt`)}>Imprimer</Button>}
+                  {p.annule ? <Badge tone="red">Annulé</Badge> : <Button variant="ghost" size="sm" icon={Printer} onClick={() => openDocument(`payments/${p.id}/receipt`)}>Imprimer</Button>}
                 </Td>
               </tr>
             ))}

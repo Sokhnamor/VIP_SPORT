@@ -16,7 +16,7 @@ export default function CashSessions() {
 
   return (
     <div>
-      <PageHeader title="Sessions de caisse" subtitle="Ouvrez une session pour voir le détail et la commenter." />
+      <PageHeader eyebrow="Contrôle" title="Sessions de caisse" subtitle="Toutes les clôtures et leurs écarts. Ouvrez une session pour la commenter." />
       <Card>
         <label className="mb-4 flex min-h-11 items-center gap-2 font-medium">
           <input type="checkbox" className="size-5" checked={avecEcart} onChange={(e) => { setAvecEcart(e.target.checked); setPage(1) }} />

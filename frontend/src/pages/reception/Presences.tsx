@@ -1,3 +1,4 @@
+import { DoorOpen, UserCheck } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { Avatar, Badge, Card, Empty, Loading, PageHeader, StatCard, Table, Td } from '../../components/ui'
@@ -23,14 +24,14 @@ export default function Presences() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Présences du jour" subtitle="Mise à jour automatique toutes les 15 secondes" />
+      <PageHeader eyebrow="En direct" title="Présences du jour" subtitle="Mise à jour automatique toutes les 15 secondes." />
       <div className="grid grid-cols-2 gap-3 sm:max-w-md">
-        <StatCard label="Entrées" value={presences.data?.total ?? '—'} />
-        <StatCard label="Présents" value={presences.data?.presents ?? '—'} tone="green" />
+        <StatCard featured icon={DoorOpen} label="Entrées" value={presences.data?.total ?? '—'} />
+        <StatCard icon={UserCheck} label="Présents" value={presences.data?.presents ?? '—'} tone="green" />
       </div>
       <Card>
         {presences.isLoading && <Loading />}
-        {presences.data?.data.length === 0 && <Empty>Personne n'est encore entré aujourd'hui.</Empty>}
+        {presences.data?.data.length === 0 && <Empty icon={DoorOpen}>Personne n'est encore entré aujourd'hui.</Empty>}
         {presences.data && presences.data.data.length > 0 && (
           <Table head={['Entrée', 'Personne', 'Sortie']}>
             {presences.data.data.map((p) => (

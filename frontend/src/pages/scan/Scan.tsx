@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Html5Qrcode } from 'html5-qrcode'
+import { AlertTriangle, ArrowLeft, CameraOff, CheckCircle2, Clock, Keyboard, LogIn, LogOut, Maximize, ScanLine, UserRound, Wifi, WifiOff, XCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { cx } from '../../components/ui'
@@ -17,10 +18,10 @@ type Stats = { entrees_jour: number; mode_sortie: boolean; nom_salle: string; he
 type Display = { kind: 'result'; result: ScanResult } | { kind: 'error'; message: string; tone: 'rouge' | 'jaune' }
 
 const COLORS: Record<string, string> = {
-  vert: 'bg-emerald-600',
-  orange: 'bg-orange-500',
-  jaune: 'bg-yellow-400 text-slate-950',
-  rouge: 'bg-red-600',
+  vert: 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700',
+  orange: 'bg-gradient-to-br from-orange-400 via-orange-500 to-amber-600',
+  jaune: 'bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-400 text-slate-950',
+  rouge: 'bg-gradient-to-br from-red-500 via-red-600 to-rose-800',
 }
 
 /**
@@ -110,7 +111,8 @@ export default function Scan() {
     scanner
       .start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.7); return { width: s, height: s } } },
+        // Lecture sur toute l'image (le cadre affiché est purement visuel).
+        { fps: 12 },
         (text) => submit(text),
         () => undefined,
       )
@@ -144,61 +146,92 @@ export default function Scan() {
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-slate-950 text-white select-none">
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-ink-950 text-white select-none">
+      <div className="pointer-events-none absolute -top-40 left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-brand-500/15 blur-[120px]" />
+
       {/* Barre d'état */}
-      <header className="flex items-center gap-3 px-4 py-3">
-        <span className={cx('inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold', connected ? 'bg-emerald-700' : 'bg-red-700')} role="status">
-          <span className={cx('size-2.5 rounded-full', connected ? 'bg-emerald-300' : 'animate-pulse bg-red-300')} />
-          {connected ? 'Connecté' : 'Hors ligne'}
+      <header className="relative flex items-center gap-3 px-4 pt-4 pb-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-brand-gradient shadow-glow"><ScanLine className="size-5" strokeWidth={2.4} /></span>
+        <span className="min-w-0 leading-tight">
+          <span className="block truncate font-extrabold">{stats.data?.nom_salle ?? 'Contrôle d\'accès'}</span>
+          <span className={cx('flex items-center gap-1.5 text-xs font-semibold', connected ? 'text-emerald-400' : 'text-red-400')} role="status">
+            {connected ? <Wifi className="size-3.5" /> : <WifiOff className="size-3.5" />}
+            {connected ? 'Connecté au serveur' : 'Hors ligne'}
+          </span>
         </span>
-        <span className="truncate font-bold">{stats.data?.nom_salle ?? 'Contrôle d\'accès'}</span>
-        <span className="ml-auto text-right">
-          <span className="block text-2xl leading-none font-black">{stats.data?.entrees_jour ?? '—'}</span>
-          <span className="text-xs text-slate-400">entrées aujourd'hui</span>
+        <span className="ml-auto rounded-2xl bg-white/[0.06] px-4 py-2 text-right ring-1 ring-white/10 backdrop-blur">
+          <span className="tabular block text-2xl leading-none font-extrabold">{stats.data?.entrees_jour ?? '—'}</span>
+          <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">entrées</span>
         </span>
       </header>
 
       {!connected && (
-        <div className="mx-4 rounded-xl bg-red-700 p-3 text-center font-semibold">
-          Connexion perdue : les scans sont impossibles. Le serveur décide de chaque entrée — patientez ou vérifiez le Wi-Fi.
+        <div className="relative mx-4 flex items-start gap-3 rounded-2xl bg-red-600/90 p-4 font-semibold shadow-pop">
+          <WifiOff className="mt-0.5 size-5 shrink-0" />
+          Connexion perdue : aucun scan n'est possible. Le serveur décide de chaque entrée — vérifiez le Wi-Fi.
         </div>
       )}
 
       {stats.data?.mode_sortie && (
-        <div className="mx-4 mt-2 grid grid-cols-2 gap-2 rounded-2xl bg-slate-800 p-1">
+        <div className="relative mx-4 mt-1 grid grid-cols-2 gap-1 rounded-2xl bg-white/[0.06] p-1.5 ring-1 ring-white/10">
           {(['entree', 'sortie'] as const).map((t) => (
-            <button key={t} onClick={() => setType(t)} className={cx('min-h-12 rounded-xl text-lg font-bold', type === t ? (t === 'entree' ? 'bg-emerald-600' : 'bg-sky-600') : 'text-slate-300')}>
+            <button key={t} onClick={() => setType(t)} className={cx('flex min-h-12 items-center justify-center gap-2 rounded-xl text-lg font-bold transition', type === t ? (t === 'entree' ? 'bg-brand-gradient shadow-glow' : 'bg-gradient-to-r from-sky-500 to-indigo-500') : 'text-slate-400')}>
+              {t === 'entree' ? <LogIn className="size-5" /> : <LogOut className="size-5" />}
               {t === 'entree' ? 'Entrée' : 'Sortie'}
             </button>
           ))}
         </div>
       )}
 
-      {/* Caméra */}
+      {/* Caméra + cadre de visée */}
       <div className="relative flex-1 overflow-hidden p-4">
-        <div id="qr-reader" className="mx-auto h-full max-w-xl overflow-hidden rounded-2xl bg-black [&_video]:h-full [&_video]:w-full [&_video]:object-cover" />
-        {cameraError && (
-          <div className="absolute inset-4 flex items-center justify-center rounded-2xl bg-slate-900 p-6 text-center text-lg">{cameraError}</div>
-        )}
-        {busy && <div className="absolute top-6 left-1/2 -translate-x-1/2 rounded-full bg-slate-900/80 px-4 py-1 text-sm">Vérification…</div>}
+        <div className="relative mx-auto h-full max-w-xl overflow-hidden rounded-[2rem] bg-black shadow-pop ring-1 ring-white/10">
+          <div id="qr-reader" className="h-full w-full [&_video]:h-full [&_video]:w-full [&_video]:object-cover" />
+          {!cameraError && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="relative aspect-square w-[68%] max-w-[340px]">
+                {['top-0 left-0 border-t-4 border-l-4 rounded-tl-3xl', 'top-0 right-0 border-t-4 border-r-4 rounded-tr-3xl', 'bottom-0 left-0 border-b-4 border-l-4 rounded-bl-3xl', 'bottom-0 right-0 border-b-4 border-r-4 rounded-br-3xl'].map((c) => (
+                  <span key={c} className={cx('absolute size-12 border-brand-400 drop-shadow-[0_0_10px_rgb(47_216_160/0.8)]', c)} />
+                ))}
+                <span className="absolute inset-x-4 h-0.5 animate-scan-line rounded-full bg-gradient-to-r from-transparent via-brand-400 to-transparent shadow-[0_0_16px_rgb(47_216_160/0.9)]" />
+              </div>
+            </div>
+          )}
+          {cameraError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-ink-900 p-8 text-center">
+              <span className="flex size-16 items-center justify-center rounded-2xl bg-white/5 ring-1 ring-white/10"><CameraOff className="size-8 text-slate-400" /></span>
+              <p className="text-lg text-slate-300">{cameraError}</p>
+            </div>
+          )}
+          {busy && (
+            <div className="absolute top-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-ink-900/80 px-4 py-2 text-sm font-semibold ring-1 ring-white/10 backdrop-blur">
+              <span className="size-2 animate-ping rounded-full bg-brand-400" /> Vérification…
+            </div>
+          )}
+          <p className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-sm font-semibold text-white/70">Présentez le QR code dans le cadre</p>
+        </div>
       </div>
 
       {/* Actions */}
-      <footer className="grid grid-cols-2 gap-2 p-4 pt-0">
-        <button onClick={() => setManualOpen(true)} className="min-h-14 rounded-xl bg-slate-800 text-lg font-bold">Saisir un code</button>
-        <button onClick={fullscreen} className="min-h-14 rounded-xl bg-slate-800 text-lg font-bold">Plein écran</button>
+      <footer className="relative grid grid-cols-2 gap-3 p-4 pt-0">
+        <button onClick={() => setManualOpen(true)} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-white/[0.07] text-base font-bold ring-1 ring-white/10 transition hover:bg-white/10">
+          <Keyboard className="size-5" /> Saisir un code
+        </button>
+        <button onClick={fullscreen} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-white/[0.07] text-base font-bold ring-1 ring-white/10 transition hover:bg-white/10">
+          <Maximize className="size-5" /> Plein écran
+        </button>
         {user?.role === 'scanner' ? (
-          <button onClick={() => logout().then(() => navigate('/connexion'))} className="col-span-2 min-h-11 rounded-xl text-sm text-slate-400">Déconnexion du poste</button>
+          <button onClick={() => logout().then(() => navigate('/connexion'))} className="col-span-2 min-h-10 rounded-xl text-sm text-slate-500 hover:text-slate-300">Déconnexion du poste</button>
         ) : (
-          <Link to="/" className="col-span-2 flex min-h-11 items-center justify-center rounded-xl text-sm text-slate-400">← Retour à la réception</Link>
+          <Link to="/" className="col-span-2 flex min-h-10 items-center justify-center gap-1.5 rounded-xl text-sm text-slate-500 hover:text-slate-300"><ArrowLeft className="size-4" /> Retour à la réception</Link>
         )}
       </footer>
 
       {/* Saisie manuelle de secours */}
       {manualOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 p-4" onClick={() => setManualOpen(false)}>
-          <form onSubmit={onManual} onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-3 rounded-2xl bg-slate-900 p-5">
-            <h2 className="text-xl font-bold">Saisie manuelle</h2>
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm sm:items-center" onClick={() => setManualOpen(false)}>
+          <form onSubmit={onManual} onClick={(e) => e.stopPropagation()} className="w-full max-w-md animate-pop space-y-4 rounded-3xl bg-ink-850 p-6 ring-1 ring-white/10">
+            <h2 className="flex items-center gap-3 text-xl font-bold"><Keyboard className="size-5 text-brand-400" /> Saisie manuelle</h2>
             <p className="text-slate-400">Code imprimé sous le QR (carte membre) ou numéro du ticket (T-XXXXXXXX).</p>
             <input
               value={manualCode}
@@ -207,12 +240,12 @@ export default function Scan() {
               autoCapitalize="characters"
               autoComplete="off"
               spellCheck={false}
-              className="block min-h-14 w-full rounded-xl bg-slate-800 px-4 font-mono text-xl tracking-wider text-white ring-1 ring-slate-600 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              className="block min-h-14 w-full rounded-2xl bg-ink-950 px-4 font-mono text-xl tracking-wider text-white ring-1 ring-white/10 focus:ring-2 focus:ring-brand-500 focus:outline-none"
               placeholder="T-XXXXXXXX ou M-…"
             />
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setManualOpen(false)} className="min-h-12 rounded-xl bg-slate-700 font-bold">Annuler</button>
-              <button type="submit" className="min-h-12 rounded-xl bg-emerald-600 font-bold" disabled={!connected}>Vérifier</button>
+            <div className="grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => setManualOpen(false)} className="min-h-12 rounded-2xl bg-white/[0.07] font-bold">Annuler</button>
+              <button type="submit" className="min-h-12 rounded-2xl bg-brand-gradient font-bold shadow-glow disabled:opacity-50" disabled={!connected}>Vérifier</button>
             </div>
           </form>
         </div>
@@ -220,9 +253,17 @@ export default function Scan() {
 
       {/* Résultat plein écran */}
       {display && (
-        <button type="button" onClick={() => setDisplay(null)} className={cx('fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 p-6 text-center', COLORS[display.kind === 'result' ? display.result.couleur : display.tone])}>
-          {display.kind === 'result' ? <ResultView result={display.result} /> : <p className="text-4xl font-black">{display.message}</p>}
-          <span className="text-sm opacity-80">Touchez pour continuer</span>
+        <button type="button" onClick={() => setDisplay(null)} className={cx('fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 overflow-hidden p-6 text-center', COLORS[display.kind === 'result' ? display.result.couleur : display.tone])}>
+          <div className="bg-grid pointer-events-none absolute inset-0 opacity-40" />
+          <div className="relative flex animate-pop flex-col items-center gap-5">
+            {display.kind === 'result' ? <ResultView result={display.result} /> : (
+              <>
+                <XCircle className="size-24" strokeWidth={1.8} />
+                <p className="text-4xl font-black">{display.message}</p>
+              </>
+            )}
+          </div>
+          <span className="relative mt-4 rounded-full bg-black/15 px-4 py-1.5 text-sm font-semibold">Touchez pour continuer</span>
         </button>
       )}
     </div>
@@ -233,24 +274,28 @@ function ResultView({ result }: { result: ScanResult }) {
   const title = result.type === 'sortie'
     ? 'SORTIE'
     : { vert: 'ENTRÉE OK', orange: 'ENTRÉE OK', jaune: 'DÉJÀ SCANNÉ', rouge: 'REFUSÉ' }[result.couleur]
+  const Icon = result.type === 'sortie' ? LogOut : { vert: CheckCircle2, orange: AlertTriangle, jaune: Clock, rouge: XCircle }[result.couleur]
 
   return (
     <>
-      <p className="text-6xl font-black tracking-tight sm:text-7xl">{title}</p>
+      <span className="flex items-center gap-3">
+        <Icon className="size-14 sm:size-16" strokeWidth={2.2} />
+        <span className="text-5xl font-black tracking-tight sm:text-7xl">{title}</span>
+      </span>
       {/* Anti-partage : photo en grand pour vérification visuelle. */}
       {result.membre && (
         result.membre.photo_url ? (
-          <img src={result.membre.photo_url} alt="" className="size-56 rounded-3xl object-cover ring-8 ring-white/40 sm:size-72" />
+          <img src={result.membre.photo_url} alt="" className="size-56 rounded-[2.5rem] object-cover shadow-2xl ring-8 ring-white/30 sm:size-72" />
         ) : (
-          <div className="flex size-56 items-center justify-center rounded-3xl bg-black/20 text-2xl font-bold ring-8 ring-white/30">Pas de photo</div>
+          <div className="flex size-56 flex-col items-center justify-center gap-2 rounded-[2.5rem] bg-black/15 text-xl font-bold ring-8 ring-white/25"><UserRound className="size-16 opacity-70" /> Pas de photo</div>
         )
       )}
-      {result.membre && <p className="text-4xl font-extrabold">{result.membre.nom_complet}</p>}
-      {result.ticket && <p className="text-3xl font-extrabold">Ticket {result.ticket.numero}</p>}
-      <p className="text-2xl font-bold sm:text-3xl">{result.message}</p>
+      {result.membre && <p className="text-4xl font-extrabold tracking-tight">{result.membre.nom_complet}</p>}
+      {result.ticket && <p className="rounded-2xl bg-black/15 px-5 py-2 font-mono text-3xl font-extrabold">{result.ticket.numero}</p>}
+      <p className="text-2xl font-bold opacity-95 sm:text-3xl">{result.message}</p>
       {result.accepte && result.membre && result.date_fin && (
-        <p className="text-xl">
-          Abonnement jusqu'au <strong>{date(result.date_fin)}</strong>
+        <p className="rounded-full bg-black/15 px-5 py-2 text-lg font-semibold">
+          Jusqu'au {date(result.date_fin)}
           {result.jours_restants !== null && <> · {result.jours_restants} jour(s) restant(s)</>}
         </p>
       )}

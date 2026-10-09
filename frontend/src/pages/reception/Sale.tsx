@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { MemberSearch } from '../../components/MemberSearch'
+import { Banknote, CalendarRange, CheckCircle2, CreditCard, Percent, Printer, Receipt, Smartphone, Ticket, UserPlus, Wallet, type LucideIcon } from 'lucide-react'
 import { Alert, Avatar, Button, ButtonLink, Card, Field, Input, Loading, Modal, PageHeader, cx } from '../../components/ui'
 import { api, ApiError, openDocument } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
@@ -109,17 +110,17 @@ export default function Sale() {
   if (plans.isLoading || cash.isLoading) return <Loading />
 
   return (
-    <div className="max-w-3xl space-y-5">
-      <PageHeader title={isTicket ? 'Vendre une séance' : 'Vendre un abonnement'} />
+    <div className="space-y-6">
+      <PageHeader eyebrow="Encaissement" title={isTicket ? 'Vendre une séance' : 'Vendre un abonnement'} subtitle="Le montant et la période sont calculés par le serveur." />
 
-      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-200 p-1 dark:bg-slate-800">
+      <div className="grid max-w-xl grid-cols-2 gap-1 rounded-2xl bg-slate-900/[0.05] p-1.5 dark:bg-white/5">
         {(['abonnement', 'seance'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setType(t)}
-            className={cx('min-h-12 rounded-xl font-bold', (t === 'seance') === isTicket ? 'bg-white shadow dark:bg-slate-950' : 'text-slate-600 dark:text-slate-400')}
+            className={cx('flex min-h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold transition sm:text-[15px]', (t === 'seance') === isTicket ? 'bg-white text-slate-900 shadow-card dark:bg-ink-700 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white')}
           >
-            {t === 'seance' ? 'Séance unique (ticket)' : 'Abonnement / renouvellement'}
+            {t === 'seance' ? <><Ticket className="size-4" /> Séance unique</> : <><CreditCard className="size-4" /> Abonnement</>}
           </button>
         ))}
       </div>
@@ -135,10 +136,12 @@ export default function Sale() {
         </Alert>
       )}
 
+      <div className="grid items-start gap-6 xl:grid-cols-[1fr_380px]">
+      <div className="space-y-6">
       {/* 1. Membre */}
-      <Card title={isTicket ? '1. Membre (facultatif)' : '1. Membre'}>
+      <Card title={<Step n={1} label={isTicket ? 'Membre (facultatif)' : 'Membre'} done={Boolean(member.data)} />}>
         {member.data ? (
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-slate-50 p-3 dark:bg-white/[0.03]">
             <Avatar url={member.data.photo_url} name={member.data.nom_complet} />
             <div className="min-w-0 flex-1">
               <p className="text-lg font-bold">{member.data.nom_complet}</p>
@@ -152,33 +155,37 @@ export default function Sale() {
         ) : (
           <div className="space-y-3">
             <MemberSearch onSelect={selectMember} autoFocus={!isTicket} />
-            <ButtonLink to="/membres/nouveau" variant="ghost">+ Créer un nouveau membre</ButtonLink>
+            <ButtonLink to="/membres/nouveau" variant="ghost" icon={UserPlus}>Créer un nouveau membre</ButtonLink>
           </div>
         )}
       </Card>
 
       {/* 2. Formule */}
       {(isTicket || member.data) && (
-        <Card title="2. Formule">
-          <div className="grid gap-2 sm:grid-cols-2">
+        <Card title={<Step n={2} label="Formule" done={Boolean(plan)} />}>
+          <div className="grid gap-3 sm:grid-cols-2">
             {availablePlans.map((p) => (
               <button
                 key={p.id}
                 onClick={() => setPlanId(p.id)}
                 className={cx(
-                  'min-h-16 rounded-xl p-3 text-left ring-2 transition',
-                  plan?.id === p.id ? 'bg-brand-50 ring-brand-600 dark:bg-brand-800/30' : 'ring-slate-200 hover:ring-slate-400 dark:ring-slate-700',
+                  'relative rounded-2xl border-2 p-4 text-left transition duration-200',
+                  plan?.id === p.id
+                    ? 'border-brand-500 bg-brand-50/70 shadow-[0_0_0_4px_rgb(16_196_138/0.12)] dark:bg-brand-500/10'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.03]',
                 )}
               >
-                <span className="block font-bold">{p.nom}</span>
-                <span className="block text-slate-600 dark:text-slate-400">{fcfa(p.prix_fcfa)}{!p.est_seance && ` · ${p.duree_jours} jours`}</span>
+                {plan?.id === p.id && <CheckCircle2 className="absolute top-3 right-3 size-5 text-brand-600" />}
+                <span className="block text-sm font-semibold text-slate-500 dark:text-slate-400">{p.est_seance ? 'Jour même' : `${p.duree_jours} jours`}</span>
+                <span className="mt-0.5 block text-lg font-extrabold text-slate-900 dark:text-white">{p.nom}</span>
+                <span className="tabular mt-2 block text-xl font-extrabold text-brand-700 dark:text-brand-400">{fcfa(p.prix_fcfa)}</span>
               </button>
             ))}
           </div>
           {!isTicket && quote.data && (
-            <p className="mt-3 rounded-xl bg-slate-100 p-3 dark:bg-slate-800">
-              Période : du <strong>{date(quote.data.date_debut)}</strong> au <strong>{date(quote.data.date_fin)}</strong>
-              {quote.data.renouvellement_anticipe && <span className="block text-sm text-slate-600 dark:text-slate-400">Renouvellement anticipé : la nouvelle période commence à la fin de l'abonnement en cours.</span>}
+            <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl bg-sky-50 p-4 text-sky-950 ring-1 ring-sky-200/70 dark:bg-sky-500/10 dark:text-sky-100 dark:ring-sky-500/20">
+              <CalendarRange className="size-5 text-sky-600" /> Période : du <strong>{date(quote.data.date_debut)}</strong> au <strong>{date(quote.data.date_fin)}</strong>
+              {quote.data.renouvellement_anticipe && <span className="block w-full text-sm opacity-80">Renouvellement anticipé : la nouvelle période commence à la fin de l'abonnement en cours.</span>}
             </p>
           )}
         </Card>
@@ -186,14 +193,20 @@ export default function Sale() {
 
       {/* 3. Paiement */}
       {plan && (isTicket || member.data) && (
-        <Card title="3. Paiement">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Card title={<Step n={3} label="Paiement" />}>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {Object.entries(MODES).map(([value, label]) => (
               <button
                 key={value}
                 onClick={() => setMode(value)}
-                className={cx('min-h-14 rounded-xl font-bold ring-2', mode === value ? 'bg-brand-600 text-white ring-brand-600' : 'ring-slate-200 dark:ring-slate-700')}
+                className={cx(
+                  'flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border-2 text-sm font-bold transition',
+                  mode === value
+                    ? 'border-brand-500 bg-brand-50/70 text-brand-800 shadow-[0_0_0_4px_rgb(16_196_138/0.12)] dark:bg-brand-500/10 dark:text-brand-300'
+                    : 'border-slate-200 text-slate-600 hover:border-slate-300 dark:border-white/10 dark:text-slate-300',
+                )}
               >
+                {(() => { const Icon = MODE_ICONS[value] ?? Wallet; return <Icon className="size-6" /> })()}
                 {label}
               </button>
             ))}
@@ -209,9 +222,9 @@ export default function Sale() {
 
           <div className="mt-4">
             {!showReduction ? (
-              <Button variant="ghost" onClick={() => setShowReduction(true)}>Appliquer une réduction (autorisation du patron)…</Button>
+              <Button variant="ghost" icon={Percent} onClick={() => setShowReduction(true)}>Appliquer une réduction (autorisation du patron)</Button>
             ) : (
-              <div className="space-y-3 rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:ring-amber-900">
+              <div className="space-y-4 rounded-2xl bg-amber-50/80 p-4 ring-1 ring-amber-200/80 dark:bg-amber-500/10 dark:ring-amber-500/20">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Réduction (FCFA)">
                     <Input type="number" inputMode="numeric" min={0} value={reduction} onChange={(e) => setReduction(e.target.value)} />
@@ -236,29 +249,46 @@ export default function Sale() {
         </Card>
       )}
 
+      </div>
+
       {/* Récapitulatif */}
-      {plan && (isTicket || member.data) && (
-        <Card title="Récapitulatif">
-          <dl className="space-y-1 text-lg">
+      <aside className="xl:sticky xl:top-24">
+        <section className="relative animate-rise overflow-hidden rounded-card bg-ink-gradient p-6 text-white shadow-pop">
+          <div className="bg-grid pointer-events-none absolute inset-0 opacity-50" />
+          <div className="absolute -top-20 -right-20 size-56 rounded-full bg-brand-500/25 blur-[70px]" />
+          <div className="relative">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-brand-gradient shadow-glow"><Receipt className="size-5" /></span>
+            <h2 className="text-lg font-bold">Récapitulatif</h2>
+          </div>
+          {!plan || !(isTicket || member.data) ? (
+            <p className="text-sm text-slate-400">{isTicket ? 'Choisissez une formule pour continuer.' : 'Choisissez un membre puis une formule.'}</p>
+          ) : (<>
+          <dl className="space-y-2.5 text-[15px]">
+            {member.data && <Row label="Membre" value={member.data.nom_complet} />}
             <Row label="Formule" value={plan.nom} />
             <Row label="Montant dû" value={fcfa(montantDu)} />
             {reductionValue > 0 && <Row label="Réduction" value={`− ${fcfa(reductionValue)}`} />}
             <Row label="Mode" value={MODES[mode]} />
-            <div className="flex justify-between border-t border-slate-200 pt-2 text-2xl font-extrabold dark:border-slate-700">
-              <dt>À encaisser</dt>
-              <dd>{fcfa(aEncaisser)}</dd>
-            </div>
           </dl>
+          <div className="my-5 border-t border-dashed border-white/15" />
+          <p className="text-sm text-slate-400">À encaisser</p>
+          <p className="tabular text-4xl font-extrabold tracking-tight">{fcfa(aEncaisser)}</p>
           <Button
             size="lg"
-            className="mt-4 w-full"
+            className="mt-6 w-full"
+            icon={Banknote}
             disabled={!cash.data || (needsReference && !reference.trim()) || (reductionValue > 0 && motifReduction.trim().length < 3)}
             onClick={() => setConfirmOpen(true)}
           >
-            Encaisser {fcfa(aEncaisser)}
+            Encaisser
           </Button>
-        </Card>
-      )}
+          {!cash.data && <p className="mt-3 text-center text-sm text-amber-300">Ouvrez votre caisse pour encaisser.</p>}
+          </>)}
+          </div>
+        </section>
+      </aside>
+      </div>
 
       <Modal
         open={confirmOpen}
@@ -281,19 +311,38 @@ export default function Sale() {
   )
 }
 
+const MODE_ICONS: Record<string, LucideIcon> = { especes: Banknote, wave: Smartphone, orange_money: Smartphone, autre: Wallet }
+
+/** Titre d'étape numérotée (coche quand l'étape est remplie). */
+function Step({ n, label, done }: { n: number; label: string; done?: boolean }) {
+  return (
+    <span className="flex items-center gap-3">
+      <span className={cx('flex size-8 items-center justify-center rounded-full text-sm font-extrabold', done ? 'bg-brand-gradient text-white shadow-glow' : 'bg-slate-900/[0.06] text-slate-600 dark:bg-white/10 dark:text-slate-300')}>
+        {done ? <CheckCircle2 className="size-4" /> : n}
+      </span>
+      {label}
+    </span>
+  )
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
-      <dt className="text-slate-600 dark:text-slate-400">{label}</dt>
-      <dd className="text-right font-semibold">{value}</dd>
+      <dt className="text-slate-400">{label}</dt>
+      <dd className="text-right font-semibold text-white">{value}</dd>
     </div>
   )
 }
 
 function SaleDone({ payment, onNew }: { payment: Payment; onNew: () => void }) {
   return (
-    <div className="max-w-2xl space-y-5">
-      <Alert tone="green" title="Paiement enregistré">
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div className="animate-pop text-center">
+        <span className="mx-auto flex size-20 items-center justify-center rounded-full bg-brand-gradient text-white shadow-glow"><CheckCircle2 className="size-10" /></span>
+        <h1 className="mt-5 text-3xl font-extrabold text-slate-900 dark:text-white">Paiement enregistré</h1>
+        <p className="tabular mt-2 text-lg text-slate-500 dark:text-slate-400">{payment.numero_recu} · {fcfa(payment.montant_encaisse)} · {payment.mode_libelle}</p>
+      </div>
+      <Alert tone="green" title="Reçu prêt à imprimer">
         Reçu <strong>{payment.numero_recu}</strong> — {fcfa(payment.montant_encaisse)} ({payment.mode_libelle})
       </Alert>
       <Card>
@@ -306,7 +355,7 @@ function SaleDone({ payment, onNew }: { payment: Payment; onNew: () => void }) {
           <p className="text-lg">Ticket <strong>{payment.ticket.numero}</strong> valable aujourd'hui ({date(payment.ticket.valable_le)}) pour une entrée.</p>
         )}
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <Button size="lg" onClick={() => openDocument(`payments/${payment.id}/receipt`)}>Reçu A5 (PDF)</Button>
+          <Button size="lg" icon={Printer} onClick={() => openDocument(`payments/${payment.id}/receipt`)}>Reçu A5 (PDF)</Button>
           <Button size="lg" variant="secondary" onClick={() => openDocument(`payments/${payment.id}/receipt?format=80mm`)}>Ticket de caisse 80 mm</Button>
           {payment.ticket && <ButtonLink to={`/tickets/${payment.ticket.id}`} size="lg" variant="secondary">Afficher le QR / WhatsApp</ButtonLink>}
           {payment.member && <ButtonLink to={`/membres/${payment.member.id}`} size="lg" variant="secondary">Fiche du membre</ButtonLink>}

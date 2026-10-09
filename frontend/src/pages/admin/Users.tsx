@@ -1,3 +1,4 @@
+import { UserPlus } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Alert, Badge, Button, Card, Field, Input, Loading, Modal, PageHeader, Select, Table, Td } from '../../components/ui'
@@ -28,7 +29,7 @@ export default function Users() {
 
   return (
     <div>
-      <PageHeader title="Utilisateurs" actions={<Button onClick={() => setEditing({ nom: '', identifiant: '', role: 'receptionniste' })}>+ Nouveau compte</Button>} />
+      <PageHeader eyebrow="Configuration" title="Utilisateurs" subtitle="Un compte par employé ; désactivation plutôt que suppression." actions={<Button icon={UserPlus} onClick={() => setEditing({ nom: '', identifiant: '', role: 'receptionniste' })}>Nouveau compte</Button>} />
       {feedback && <div className="mb-4"><Alert tone={feedback.tone}>{feedback.text}</Alert></div>}
       <Card>
         {users.isLoading && <Loading />}

@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Alert, Badge, Button, Card, Field, Input, Loading, Modal, PageHeader, Table, Td } from '../../components/ui'
@@ -13,7 +14,7 @@ export default function Plans() {
 
   return (
     <div>
-      <PageHeader title="Formules et tarifs" actions={<Button onClick={() => setEditing({ nom: '', duree_jours: 30, prix_fcfa: 0, est_seance: false, actif: true })}>+ Nouvelle formule</Button>} />
+      <PageHeader eyebrow="Configuration" title="Formules et tarifs" actions={<Button icon={Plus} onClick={() => setEditing({ nom: '', duree_jours: 30, prix_fcfa: 0, est_seance: false, actif: true })}>Nouvelle formule</Button>} />
       <Alert tone="blue">Le prix est figé dans chaque paiement au moment de la vente : modifier un tarif n'altère jamais l'historique.</Alert>
       <Card className="mt-4">
         {plans.isLoading && <Loading />}

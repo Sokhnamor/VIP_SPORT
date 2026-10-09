@@ -1,4 +1,6 @@
+import { Banknote, History, Lock, ListChecks, Smartphone, Wallet } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '../../lib/auth'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { Alert, Badge, Button, Card, Empty, Field, Input, Loading, PageHeader, Pagination, Table, Td, Textarea, cx } from '../../components/ui'
@@ -14,8 +16,10 @@ export default function Cash() {
     queryFn: () => api<{ data: CashSession | null }>('cash-sessions/current').then((r) => r.data),
     refetchInterval: 30_000,
   })
+  const { user } = useAuth()
   const [page, setPage] = useState(1)
-  const history = useQuery({ queryKey: ['cash', 'history', page], queryFn: () => api<Paginated<CashSession>>(`cash-sessions?page=${page}`) })
+  // « Mes sessions » : filtré sur l'utilisateur connecté (l'admin voit tout dans « Caisses »).
+  const history = useQuery({ queryKey: ['cash', 'history', page, user?.id], queryFn: () => api<Paginated<CashSession>>(`cash-sessions?page=${page}&user_id=${user?.id ?? ''}`) })
   const [closed, setClosed] = useState<CashSession | null>(null)
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['cash'] })
@@ -24,7 +28,7 @@ export default function Cash() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Ma caisse" />
+      <PageHeader eyebrow="Réception" title="Ma caisse" subtitle="Fond de caisse, encaissements du jour et clôture." />
 
       {closed && (
         <Alert tone={closed.ecart === 0 ? 'green' : 'amber'} title="Session clôturée et verrouillée">
@@ -34,7 +38,7 @@ export default function Cash() {
 
       {current.data ? <OpenSession session={current.data} onClosed={(s) => { setClosed(s); refresh() }} /> : <OpenForm onOpened={() => { setClosed(null); refresh() }} />}
 
-      <Card title="Historique de mes sessions">
+      <Card title="Historique de mes sessions" icon={History}>
         {history.data?.data.length === 0 && <Empty>Aucune session.</Empty>}
         {history.data && history.data.data.length > 0 && (
           <SessionsTable sessions={history.data.data} />
@@ -86,14 +90,20 @@ function OpenForm({ onOpened }: { onOpened: () => void }) {
   }
 
   return (
-    <Card title="Ouvrir ma session de caisse">
-      <div className="max-w-sm space-y-4">
-        <p className="text-slate-600 dark:text-slate-400">Comptez les espèces présentes dans la caisse avant la première vente.</p>
+    <Card>
+      <div className="grid items-center gap-6 md:grid-cols-[1fr_380px]">
+        <div>
+          <span className="flex size-14 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-glow"><Wallet className="size-7" /></span>
+          <h2 className="mt-4 text-2xl font-extrabold text-slate-900 dark:text-white">Ouvrir ma session de caisse</h2>
+          <p className="mt-2 max-w-md text-slate-500 dark:text-slate-400">Comptez les espèces présentes dans le tiroir avant la première vente. Tous vos encaissements seront rattachés à cette session.</p>
+        </div>
+      <div className="space-y-4">
         {error && <Alert>{error}</Alert>}
         <Field label="Fond de caisse initial (FCFA)">
           <Input type="number" inputMode="numeric" min={0} value={fond} onChange={(e) => setFond(e.target.value)} autoFocus />
         </Field>
-        <Button size="lg" className="w-full" loading={loading} onClick={open}>Ouvrir la caisse</Button>
+        <Button size="lg" className="w-full" icon={Wallet} loading={loading} onClick={open}>Ouvrir la caisse</Button>
+      </div>
       </div>
     </Card>
   )
@@ -123,15 +133,15 @@ function OpenSession({ session, onClosed }: { session: CashSession; onClosed: (s
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
-      <Card title={`Session #${session.id} ouverte à ${time(session.ouverte_at)}`} actions={<Button variant="secondary" onClick={() => openDocument(`cash-sessions/${session.id}/mobile-money?format=pdf`)}>Liste Wave / OM</Button>}>
+      <Card title={`Session #${session.id} ouverte à ${time(session.ouverte_at)}`} icon={ListChecks} actions={<Button variant="secondary" size="sm" icon={Smartphone} onClick={() => openDocument(`cash-sessions/${session.id}/mobile-money?format=pdf`)}>Liste Wave / OM</Button>}>
         {session.oubli_cloture && <div className="mb-3"><Alert>Cette session date d'un jour précédent : clôturez-la maintenant.</Alert></div>}
         <dl className="space-y-2 text-lg">
           <Line label="Fond initial" value={fcfa(t.fond_initial)} />
           <Line label="+ Encaissements espèces" value={fcfa(t.especes)} />
           <Line label="− Dépenses payées en caisse" value={fcfa(t.depenses_especes)} />
-          <div className="flex justify-between border-t border-slate-200 pt-2 text-xl font-extrabold dark:border-slate-700">
-            <dt>Espèces attendues</dt>
-            <dd>{fcfa(t.especes_attendues)}</dd>
+          <div className="-mx-1 flex items-center justify-between rounded-2xl bg-ink-gradient px-4 py-3.5 text-white shadow-pop">
+            <dt className="flex items-center gap-2 font-semibold"><Banknote className="size-5 text-brand-400" /> Espèces attendues</dt>
+            <dd className="tabular text-2xl font-extrabold">{fcfa(t.especes_attendues)}</dd>
           </div>
           <Line label="Wave (à part)" value={fcfa(t.wave)} />
           <Line label="Orange Money (à part)" value={fcfa(t.orange_money)} />
@@ -141,7 +151,7 @@ function OpenSession({ session, onClosed }: { session: CashSession; onClosed: (s
         <Link to={`/caisse/${session.id}`} className="mt-3 inline-block font-semibold text-brand-700 hover:underline dark:text-brand-500">Voir le détail des paiements →</Link>
       </Card>
 
-      <Card title="Clôturer la caisse">
+      <Card title="Clôturer la caisse" icon={Lock}>
         <div className="space-y-4">
           <p className="text-slate-600 dark:text-slate-400">Comptez toutes les espèces présentes dans la caisse et saisissez le total. La session sera verrouillée.</p>
           {error && !error.errors && <Alert>{error.message}</Alert>}
@@ -149,7 +159,7 @@ function OpenSession({ session, onClosed }: { session: CashSession; onClosed: (s
             <Input type="number" inputMode="numeric" min={0} value={comptees} onChange={(e) => setComptees(e.target.value)} />
           </Field>
           {apercuEcart !== null && !Number.isNaN(apercuEcart) && (
-            <p className={cx('text-lg font-bold', apercuEcart === 0 ? 'text-emerald-600' : 'text-red-600')}>
+            <p className={cx('tabular rounded-xl px-4 py-3 text-lg font-bold', apercuEcart === 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300')}>
               Écart : {fcfaSigned(apercuEcart)}
             </p>
           )}
@@ -158,7 +168,7 @@ function OpenSession({ session, onClosed }: { session: CashSession; onClosed: (s
               <Textarea value={motif} onChange={(e) => setMotif(e.target.value)} />
             </Field>
           )}
-          <Button size="lg" className="w-full" variant="warning" loading={loading} disabled={comptees === ''} onClick={close}>Clôturer et verrouiller</Button>
+          <Button size="lg" className="w-full" variant="dark" icon={Lock} loading={loading} disabled={comptees === ''} onClick={close}>Clôturer et verrouiller</Button>
         </div>
       </Card>
     </div>

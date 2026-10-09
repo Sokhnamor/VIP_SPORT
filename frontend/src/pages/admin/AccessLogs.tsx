@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { Badge, Card, Empty, Field, Input, Loading, PageHeader, Pagination, Select, Table, Td, statusTone } from '../../components/ui'
 import { api, qs } from '../../lib/api'
-import { dateTime, todayIso } from '../../lib/format'
+import { dateTime, scanLabel, todayIso } from '../../lib/format'
 import type { AccessLog, Paginated } from '../../lib/types'
 
 const RESULTS = ['ACCEPTE', 'ACCEPTE_ALERTE', 'DEJA_SCANNE', 'REFUSE_EXPIRE', 'REFUSE_SUSPENDU', 'REFUSE_ANNULE', 'REFUSE_INCONNU', 'REFUSE_QUOTA_JOUR', 'TICKET_UTILISE', 'TICKET_EXPIRE']
@@ -23,7 +23,7 @@ export default function AccessLogs() {
 
   return (
     <div>
-      <PageHeader title="Journal des accès" />
+      <PageHeader eyebrow="Contrôle" title="Journal des accès" subtitle="Chaque scan, accepté ou refusé, et les entrées manuelles." />
       <Card>
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Du"><Input type="date" value={du} onChange={(e) => { setDu(e.target.value); setPage(1) }} /></Field>
@@ -31,7 +31,7 @@ export default function AccessLogs() {
           <Field label="Résultat">
             <Select value={resultat} onChange={(e) => { setResultat(e.target.value); setPage(1) }}>
               <option value="">Tous</option>
-              {RESULTS.map((r) => <option key={r} value={r}>{r}</option>)}
+              {RESULTS.map((r) => <option key={r} value={r}>{scanLabel(r)}</option>)}
             </Select>
           </Field>
           <Field label="Type">
@@ -53,7 +53,7 @@ export default function AccessLogs() {
                   {l.member ? <Link to={`/membres/${l.member.id}`} className="hover:underline">{l.member.nom_complet}</Link> : l.ticket ? `Ticket ${l.ticket}` : <span className="text-slate-500">QR inconnu</span>}
                 </Td>
                 <Td>
-                  <Badge tone={statusTone(l.resultat)}>{l.resultat}</Badge>
+                  <Badge tone={statusTone(l.resultat)}>{scanLabel(l.resultat)}</Badge>
                   {l.manuel && <span className="block text-xs text-amber-700">manuel : {l.motif_manuel}</span>}
                 </Td>
                 <Td>{l.type === 'sortie' ? 'Sortie' : 'Entrée'}</Td>

@@ -80,3 +80,21 @@ export const ROLES: Record<string, string> = {
   receptionniste: 'Réceptionniste',
   scanner: 'Poste de scan',
 }
+
+/** Libellés lisibles des codes de scan renvoyés par le serveur. */
+export const SCAN_LABELS: Record<string, string> = {
+  ACCEPTE: 'Accepté',
+  ACCEPTE_ALERTE: 'Accepté (expire bientôt)',
+  DEJA_SCANNE: 'Déjà scanné',
+  REFUSE_EXPIRE: 'Refusé : expiré',
+  REFUSE_SUSPENDU: 'Refusé : suspendu',
+  REFUSE_ANNULE: 'Refusé : annulé',
+  REFUSE_INCONNU: 'Refusé : QR inconnu',
+  REFUSE_QUOTA_JOUR: 'Refusé : déjà entré',
+  TICKET_UTILISE: 'Ticket déjà utilisé',
+  TICKET_EXPIRE: 'Ticket expiré',
+}
+
+export function scanLabel(code: string): string {
+  return SCAN_LABELS[code] ?? code
+}

@@ -2,10 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { ReasonModal } from '../../components/ReasonModal'
-import { Alert, Avatar, Badge, Button, ButtonLink, Card, Empty, Field, Input, Loading, Modal, PageHeader, Table, Td, Textarea, statusTone } from '../../components/ui'
+import { ArrowLeft, BadgeCheck, CalendarRange, Receipt, ShieldCheck, Cake, Camera, Coins, DoorOpen, HeartPulse, Mail, Pencil, Phone, QrCode, ShieldOff, StickyNote, type LucideIcon } from 'lucide-react'
+import { Alert, Avatar, Badge, Button, ButtonLink, Card, Empty, Field, Input, Loading, Modal, Table, Td, Textarea, cx, statusTone } from '../../components/ui'
 import { api, errorMessage, openDocument } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
-import { date, dateTime, fcfa, phone } from '../../lib/format'
+import { date, dateTime, fcfa, phone, scanLabel, todayIso } from '../../lib/format'
 import type { AccessLog, Member, Payment, ScanResult, Subscription } from '../../lib/types'
 
 type Detail = { data: Member; abonnements: Subscription[]; paiements: Payment[]; entrees: AccessLog[] }
@@ -55,71 +56,99 @@ export default function MemberDetail() {
   const { data: m, abonnements, paiements, entrees } = detail.data
   const current = m.abonnement_en_cours
 
+  // Affichage seulement : nombre de jours jusqu'à la fin de couverture renvoyée par le serveur.
+  const joursRestants = m.couvert_jusqu_au ? Math.round((Date.parse(m.couvert_jusqu_au) - Date.parse(todayIso())) / 86_400_000) : null
+  const covered = Boolean(current) && current?.statut !== 'suspendu'
+
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title={m.nom_complet}
-        subtitle={<>Membre n° {m.id} · inscrit le {date(m.date_inscription)}</>}
-        actions={
-          m.statut === 'actif' && (
-            <>
-              <ButtonLink to={`/vente?membre=${m.id}`}>{current ? 'Renouveler' : 'Vendre un abonnement'}</ButtonLink>
-              <ButtonLink to={`/membres/${m.id}/modifier`} variant="secondary">Modifier</ButtonLink>
-            </>
-          )
-        }
-      />
+    <div className="space-y-6">
+      <Link to="/membres" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+        <ArrowLeft className="size-4" /> Membres
+      </Link>
 
       {feedback && <Alert tone={feedback.tone}>{feedback.text}</Alert>}
       {m.statut === 'archive' && <Alert tone="amber">Membre archivé{m.anonymise ? ' et anonymisé' : ''} : aucun accès possible.</Alert>}
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <div className="flex flex-col gap-5 sm:flex-row">
-            <Avatar url={m.photo_url} name={m.nom_complet} size="lg" />
-            <dl className="grid flex-1 grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-              <Info label="Téléphone">
-                <a href={`tel:${m.telephone}`} className="font-semibold hover:underline">{phone(m.telephone)}</a>
-              </Info>
-              <Info label="E-mail">{m.email ?? '—'}</Info>
-              <Info label="Date de naissance">{date(m.date_naissance)}</Info>
-              <Info label="Sexe">{m.sexe === 'F' ? 'Femme' : m.sexe === 'M' ? 'Homme' : '—'}</Info>
-              <Info label="Contact d'urgence">{m.contact_urgence ?? '—'}</Info>
-              <Info label="Notes">{m.notes ?? '—'}</Info>
-            </dl>
-          </div>
-          {!m.photo_url && m.statut === 'actif' && (
-            <p className="mt-4 text-sm font-medium text-amber-700 dark:text-amber-400">
-              Pas de photo : ajoutez-en une (bouton Modifier) pour permettre la vérification à l'entrée.
-            </p>
-          )}
-        </Card>
+      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+        {/* Profil */}
+        <section className="relative animate-rise overflow-hidden rounded-card border border-slate-200/80 bg-white shadow-card dark:border-white/[0.06] dark:bg-ink-850">
+          <div className="h-24 bg-ink-gradient"><div className="bg-grid h-full opacity-60" /></div>
+          <div className="px-6 pb-6">
+            <div className="-mt-12 flex flex-wrap items-end justify-between gap-4">
+              <Avatar url={m.photo_url} name={m.nom_complet} size="lg" />
+              {m.statut === 'actif' && (
+                <div className="flex flex-wrap gap-2">
+                  <ButtonLink to={`/membres/${m.id}/modifier`} variant="secondary" icon={Pencil}>Modifier</ButtonLink>
+                  <ButtonLink to={`/vente?membre=${m.id}`} icon={Coins}>{current ? 'Renouveler' : 'Vendre un abonnement'}</ButtonLink>
+                </div>
+              )}
+            </div>
+            <h1 className="mt-4 text-[28px] leading-tight font-extrabold text-slate-900 dark:text-white">{m.nom_complet}</h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Membre n° {String(m.id).padStart(5, '0')} · inscrit le {date(m.date_inscription)}</p>
 
-        <Card title="Abonnement">
-          {current ? (
-            <div className="space-y-2">
-              <Badge tone={statusTone(current.statut)}>{current.statut_libelle}</Badge>
-              <p className="text-lg">
-                Couvert jusqu'au <strong>{date(m.couvert_jusqu_au)}</strong>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <InfoChip icon={Phone} label="Téléphone"><a href={`tel:${m.telephone}`} className="hover:underline">{phone(m.telephone)}</a></InfoChip>
+              <InfoChip icon={Mail} label="E-mail">{m.email ?? '—'}</InfoChip>
+              <InfoChip icon={Cake} label="Naissance">{date(m.date_naissance)}{m.sexe && <span className="font-normal text-slate-400"> · {m.sexe === 'F' ? 'Femme' : 'Homme'}</span>}</InfoChip>
+              <InfoChip icon={HeartPulse} label="Contact d'urgence">{m.contact_urgence ?? '—'}</InfoChip>
+            </div>
+            {m.notes && (
+              <p className="mt-3 flex gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-600 dark:bg-white/[0.03] dark:text-slate-300">
+                <StickyNote className="mt-0.5 size-4 shrink-0 text-slate-400" />{m.notes}
               </p>
+            )}
+            {!m.photo_url && m.statut === 'actif' && (
+              <p className="mt-4 flex items-center gap-2 rounded-xl bg-amber-50 p-3 text-sm font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+                <Camera className="size-4 shrink-0" /> Pas de photo : ajoutez-en une (Modifier) pour la vérification à l'entrée.
+              </p>
+            )}
+          </div>
+        </section>
+
+        {/* Abonnement */}
+        <section className={cx('relative flex animate-rise flex-col overflow-hidden rounded-card p-6 text-white shadow-pop', covered ? 'bg-ink-gradient' : 'bg-gradient-to-br from-red-600 to-rose-700')}>
+          <div className="bg-grid pointer-events-none absolute inset-0 opacity-50" />
+          {covered && <div className="absolute -top-16 -right-16 size-56 rounded-full bg-brand-500/30 blur-[70px]" />}
+          <div className="relative flex items-center justify-between">
+            <p className="text-sm font-semibold text-white/70">Abonnement</p>
+            <span className={cx('flex size-10 items-center justify-center rounded-xl', covered ? 'bg-brand-gradient shadow-glow' : 'bg-white/15')}>
+              {covered ? <BadgeCheck className="size-5" /> : <ShieldOff className="size-5" />}
+            </span>
+          </div>
+          {covered ? (
+            <div className="relative mt-4">
+              <p className="text-sm text-white/70">Couvert jusqu'au</p>
+              <p className="tabular text-4xl font-extrabold tracking-tight">{date(m.couvert_jusqu_au)}</p>
+              {joursRestants !== null && (
+                <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-semibold ring-1 ring-white/15">
+                  <span className="size-2 rounded-full bg-brand-400" /> {joursRestants <= 0 ? 'Dernier jour' : `${joursRestants} jour(s) restant(s)`}
+                </p>
+              )}
             </div>
           ) : (
-            <Alert tone="red">Aucun abonnement valide aujourd'hui : l'entrée sera refusée.</Alert>
+            <div className="relative mt-4">
+              <p className="text-2xl font-extrabold">{current?.statut === 'suspendu' ? 'Abonnement suspendu' : 'Aucun abonnement valide'}</p>
+              <p className="mt-1 text-white/80">L'entrée sera refusée au scan.</p>
+            </div>
           )}
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="relative mt-auto grid gap-2 pt-6">
             {m.a_un_qr ? (
-              <Button variant="secondary" onClick={() => openDocument(`members/${m.id}/card`)}>Imprimer la carte (QR)</Button>
+              <button onClick={() => openDocument(`members/${m.id}/card`)} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white/10 font-semibold ring-1 ring-white/15 transition hover:bg-white/15">
+                <QrCode className="size-4" /> Imprimer la carte (QR)
+              </button>
             ) : (
-              <p className="text-sm text-slate-500">Le QR est créé au premier paiement d'abonnement.</p>
+              <p className="text-sm text-white/70">Le QR est créé au premier paiement d'abonnement.</p>
             )}
             {m.statut === 'actif' && (
-              <Button variant="secondary" onClick={() => { setManualResult(null); setManualOpen(true) }}>Entrée manuelle…</Button>
+              <button onClick={() => { setManualResult(null); setManualOpen(true) }} className="flex min-h-11 items-center justify-center gap-2 rounded-xl font-semibold text-white/80 transition hover:bg-white/10 hover:text-white">
+                <DoorOpen className="size-4" /> Entrée manuelle…
+              </button>
             )}
           </div>
-        </Card>
+        </section>
       </div>
 
-      <Card title="Historique des abonnements">
+      <Card title="Historique des abonnements" icon={CalendarRange}>
         {abonnements.length === 0 ? <Empty>Aucun abonnement.</Empty> : (
           <Table head={['Formule', 'Période', 'Statut', isAdmin ? 'Actions' : '']}>
             {abonnements.map((s) => (
@@ -145,7 +174,7 @@ export default function MemberDetail() {
         )}
       </Card>
 
-      <Card title="Paiements">
+      <Card title="Paiements" icon={Receipt}>
         {paiements.length === 0 ? <Empty>Aucun paiement.</Empty> : (
           <Table head={['Reçu', 'Date', 'Formule', 'Montant', 'Mode', 'Encaisseur', '']}>
             {paiements.map((p) => (
@@ -173,14 +202,14 @@ export default function MemberDetail() {
         )}
       </Card>
 
-      <Card title="Entrées récentes">
+      <Card title="Entrées récentes" icon={DoorOpen}>
         {entrees.length === 0 ? <Empty>Aucune entrée.</Empty> : (
           <Table head={['Date', 'Résultat', 'Type', 'Opérateur']}>
             {entrees.map((e) => (
               <tr key={e.id}>
                 <Td className="whitespace-nowrap">{dateTime(e.scanned_at)}</Td>
                 <Td>
-                  <Badge tone={statusTone(e.resultat)}>{e.resultat}</Badge>
+                  <Badge tone={statusTone(e.resultat)}>{scanLabel(e.resultat)}</Badge>
                   {e.manuel && <span className="ml-2 text-xs font-semibold text-amber-700">manuelle : {e.motif_manuel}</span>}
                 </Td>
                 <Td>{e.type === 'sortie' ? 'Sortie' : 'Entrée'}</Td>
@@ -192,7 +221,7 @@ export default function MemberDetail() {
       </Card>
 
       {isAdmin && (
-        <Card title="Administration du membre">
+        <Card title="Administration du membre" icon={ShieldCheck}>
           <div className="flex flex-wrap gap-2">
             {m.a_un_qr && m.statut === 'actif' && <Button variant="secondary" onClick={() => setConfirm('regenerate')}>Carte perdue : régénérer le QR</Button>}
             {m.statut === 'actif' ? (
@@ -259,11 +288,14 @@ export default function MemberDetail() {
   )
 }
 
-function Info({ label, children }: { label: string; children: React.ReactNode }) {
+function InfoChip({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <dt className="text-sm text-slate-500 dark:text-slate-400">{label}</dt>
-      <dd className="font-medium break-words">{children}</dd>
+    <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3 dark:border-white/5 dark:bg-white/[0.02]">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/70 dark:bg-ink-800 dark:text-slate-300 dark:ring-white/5"><Icon className="size-4" /></span>
+      <div className="min-w-0">
+        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="truncate font-semibold text-slate-900 dark:text-white">{children}</p>
+      </div>
     </div>
   )
 }

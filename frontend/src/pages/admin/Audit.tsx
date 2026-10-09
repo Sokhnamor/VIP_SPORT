@@ -23,7 +23,7 @@ export default function Audit() {
 
   return (
     <div>
-      <PageHeader title="Journal d'audit" subtitle="Lecture seule — aucune ligne ne peut être modifiée ni supprimée." />
+      <PageHeader eyebrow="Contrôle" title="Journal d'audit" subtitle="Lecture seule — aucune ligne ne peut être modifiée ni supprimée." />
       <Card>
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Action">

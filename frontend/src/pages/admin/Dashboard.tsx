@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
+import { AlertTriangle, ArrowRight, BarChart3, CalendarClock, CalendarDays, CircleDollarSign, Clock, DoorOpen, Scale, Users } from 'lucide-react'
 import { Link } from 'react-router'
 import { BarSeries } from '../../components/BarSeries'
-import { Alert, Card, Empty, Loading, PageHeader, StatCard, Table, Td } from '../../components/ui'
+import { Alert, Avatar, Card, Empty, Loading, PageHeader, StatCard, Table, Td, cx } from '../../components/ui'
 import { api, errorMessage } from '../../lib/api'
 import { date, dateTime, fcfa, fcfaSigned } from '../../lib/format'
 import type { Breakdown, Revenue } from '../../lib/types'
@@ -29,6 +30,8 @@ type DashboardData = {
   }
 }
 
+const MODE_COLORS: Record<string, string> = { especes: 'bg-emerald-500', wave: 'bg-sky-500', orange_money: 'bg-orange-500', autre: 'bg-slate-400' }
+
 /** Tableau de bord du patron : recettes, entrées, membres actifs, alertes, tendances. */
 export default function Dashboard() {
   const q = useQuery({ queryKey: ['dashboard'], queryFn: () => api<{ data: DashboardData }>('dashboard').then((r) => r.data), refetchInterval: 60_000 })
@@ -41,6 +44,7 @@ export default function Dashboard() {
   const serie30 = d.recettes_30j.map((r) => ({ jour: date(r.date).slice(0, 5), net: r.net }))
   // Fréquentation : heures d'ouverture plausibles (5h–23h) pour garder un graphique lisible.
   const heures = d.frequentation_30j.slice(5, 24)
+  const totalJour = d.par_mode_jour.reduce((s, m) => s + Math.max(0, m.net), 0)
 
   const warnings = [
     a.caisses_non_cloturees > 0 && { text: `${a.caisses_non_cloturees} session(s) de caisse non clôturée(s) d'un jour précédent`, to: '/admin/alertes' },
@@ -51,79 +55,111 @@ export default function Dashboard() {
   ].filter(Boolean) as { text: string; to: string }[]
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Tableau de bord" subtitle={`Aujourd'hui ${date(d.date)}`} />
+    <div className="space-y-6">
+      <PageHeader eyebrow="Pilotage" title="Tableau de bord" subtitle={`Situation au ${date(d.date)}, mise à jour chaque minute.`} />
 
-      {warnings.length > 0 && (
-        <Alert tone="amber" title="À vérifier">
-          <ul className="mt-1 list-disc space-y-1 pl-5">
-            {warnings.map((w) => (
-              <li key={w.text}><Link to={w.to} className="underline">{w.text}</Link></li>
-            ))}
-          </ul>
-        </Alert>
-      )}
-
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
+          featured
+          icon={CircleDollarSign}
           label="Recettes du jour"
           value={fcfa(d.recettes_jour.net)}
           hint={<>{d.recettes_jour.nombre_paiements} paiement(s){d.recettes_jour.annulations > 0 && <> · −{fcfa(d.recettes_jour.annulations)} annulés</>}</>}
         />
-        <StatCard label="Recettes du mois" value={fcfa(d.recettes_mois.net)} hint={`${d.recettes_mois.nombre_paiements} paiement(s)`} />
-        <StatCard label="Entrées du jour" value={d.entrees_jour} />
-        <StatCard label="Membres actifs" value={d.membres_actifs} hint={`${a.expirent_bientot} expirent bientôt`} />
+        <StatCard icon={CalendarDays} label="Recettes du mois" value={fcfa(d.recettes_mois.net)} hint={`${d.recettes_mois.nombre_paiements} paiement(s)`} />
+        <StatCard icon={DoorOpen} tone="green" label="Entrées du jour" value={d.entrees_jour} hint="Scans acceptés" />
+        <StatCard icon={Users} label="Membres actifs" value={d.membres_actifs} hint={`${a.expirent_bientot} expirent bientôt`} />
       </div>
 
-      {d.par_mode_jour.length > 0 && (
-        <Card title="Encaissé aujourd'hui, par mode">
-          <div className="flex flex-wrap gap-x-8 gap-y-2">
-            {d.par_mode_jour.map((m) => (
-              <p key={m.cle}><span className="text-slate-500 dark:text-slate-400">{m.libelle} :</span> <strong>{fcfa(m.net)}</strong> <span className="text-sm text-slate-500">({m.nombre})</span></p>
-            ))}
+      {warnings.length > 0 && (
+        <section className="animate-rise rounded-card border border-amber-200/80 bg-gradient-to-br from-amber-50 to-orange-50/40 p-5 dark:border-amber-500/20 dark:from-amber-500/10 dark:to-transparent">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600"><AlertTriangle className="size-5" /></span>
+            <h2 className="font-bold text-amber-950 dark:text-amber-100">À vérifier aujourd'hui</h2>
           </div>
-        </Card>
+          <ul className="mt-4 grid gap-2 md:grid-cols-2">
+            {warnings.map((w) => (
+              <li key={w.text}>
+                <Link to={w.to} className="group flex items-center justify-between gap-3 rounded-xl bg-white/70 px-4 py-3 text-sm font-semibold text-amber-950 ring-1 ring-amber-200/70 transition hover:bg-white dark:bg-white/5 dark:text-amber-100 dark:ring-amber-500/20">
+                  {w.text}
+                  <ArrowRight className="size-4 shrink-0 transition group-hover:translate-x-0.5" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <Card title="Recettes nettes — 30 derniers jours">
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Card title="Recettes nettes — 30 jours" icon={BarChart3} className="xl:col-span-2">
           <BarSeries data={serie30} xKey="jour" yKey="net" valueLabel="Recettes nettes" format={fcfa} />
         </Card>
-        <Card title="Fréquentation par heure — 30 derniers jours">
-          <BarSeries data={heures} xKey="heure" yKey="entrees" valueLabel="Entrées" format={(v) => `${v} entrée(s)`} />
+        <Card title="Encaissé aujourd'hui" icon={CircleDollarSign}>
+          {d.par_mode_jour.length === 0 ? <Empty>Aucun encaissement aujourd'hui.</Empty> : (
+            <div className="space-y-5">
+              <p className="tabular text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{fcfa(d.recettes_jour.net)}</p>
+              {/* Barre de répartition par mode, avec libellés (jamais la couleur seule) */}
+              <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/5">
+                {d.par_mode_jour.filter((m) => m.net > 0).map((m) => (
+                  <span key={m.cle} className={cx('h-full first:rounded-l-full last:rounded-r-full', MODE_COLORS[m.cle] ?? 'bg-slate-400')} style={{ width: `${(m.net / Math.max(1, totalJour)) * 100}%` }} />
+                ))}
+              </div>
+              <ul className="space-y-3">
+                {d.par_mode_jour.map((m) => (
+                  <li key={m.cle} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex items-center gap-2.5 font-semibold text-slate-700 dark:text-slate-200">
+                      <span className={cx('size-2.5 rounded-full', MODE_COLORS[m.cle] ?? 'bg-slate-400')} />
+                      {m.libelle}
+                      <span className="font-normal text-slate-400">· {m.nombre}</span>
+                    </span>
+                    <span className="tabular font-bold text-slate-900 dark:text-white">{fcfa(m.net)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Card>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <Card title="Abonnements expirant bientôt" actions={<Link to="/admin/alertes" className="font-semibold text-brand-700 hover:underline dark:text-brand-500">Tout voir</Link>}>
-          {d.expirent_bientot.length === 0 ? <Empty>Aucun abonnement n'expire prochainement.</Empty> : (
-            <Table head={['Membre', 'Fin', 'Jours restants']}>
-              {d.expirent_bientot.map((r) => (
-                <tr key={r.member_id}>
-                  <Td><Link to={`/membres/${r.member_id}`} className="font-semibold hover:underline">{r.nom}</Link></Td>
-                  <Td>{date(r.couvert_jusqu_au)}</Td>
-                  <Td>{r.jours_restants}</Td>
-                </tr>
-              ))}
-            </Table>
-          )}
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Card title="Affluence par heure — 30 jours" icon={Clock} className="xl:col-span-2">
+          <BarSeries data={heures} xKey="heure" yKey="entrees" valueLabel="Entrées" format={(v) => `${v} entrée(s)`} />
         </Card>
-        <Card title="Écarts de caisse (30 jours)" actions={<Link to="/admin/caisses" className="font-semibold text-brand-700 hover:underline dark:text-brand-500">Toutes les caisses</Link>}>
-          {d.ecarts_caisse.length === 0 ? <Empty>Aucun écart de caisse.</Empty> : (
-            <Table head={['Session', 'Employé', 'Clôture', 'Écart', 'Motif']}>
-              {d.ecarts_caisse.map((s) => (
-                <tr key={s.id}>
-                  <Td><Link to={`/caisse/${s.id}`} className="font-semibold hover:underline">#{s.id}</Link></Td>
-                  <Td>{s.employe}</Td>
-                  <Td className="whitespace-nowrap">{dateTime(s.fermee_at)}</Td>
-                  <Td className="font-bold whitespace-nowrap text-red-600">{fcfaSigned(s.ecart)}</Td>
-                  <Td>{s.motif_ecart}</Td>
-                </tr>
+        <Card title="Expirent bientôt" icon={CalendarClock} actions={<Link to="/admin/alertes" className="text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400">Tout voir</Link>}>
+          {d.expirent_bientot.length === 0 ? <Empty>Aucun abonnement n'expire prochainement.</Empty> : (
+            <ul className="-my-2 divide-y divide-slate-100 dark:divide-white/5">
+              {d.expirent_bientot.map((r) => (
+                <li key={r.member_id}>
+                  <Link to={`/membres/${r.member_id}`} className="flex items-center gap-3 py-2.5 hover:opacity-80">
+                    <Avatar url={null} name={r.nom} size="sm" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-slate-900 dark:text-white">{r.nom}</span>
+                      <span className="text-xs text-slate-500">fin le {date(r.couvert_jusqu_au)}</span>
+                    </span>
+                    <span className={cx('rounded-lg px-2 py-1 text-xs font-bold', r.jours_restants <= 3 ? 'bg-orange-500/10 text-orange-600' : 'bg-slate-500/10 text-slate-600 dark:text-slate-300')}>J-{r.jours_restants}</span>
+                  </Link>
+                </li>
               ))}
-            </Table>
+            </ul>
           )}
         </Card>
       </div>
+
+      <Card title="Écarts de caisse — 30 jours" icon={Scale} actions={<Link to="/admin/caisses" className="text-sm font-semibold text-brand-600 hover:underline dark:text-brand-400">Toutes les caisses</Link>}>
+        {d.ecarts_caisse.length === 0 ? <Empty>Aucun écart de caisse. 👌</Empty> : (
+          <Table head={['Session', 'Employé', 'Clôture', 'Écart', 'Motif']}>
+            {d.ecarts_caisse.map((s) => (
+              <tr key={s.id}>
+                <Td><Link to={`/caisse/${s.id}`} className="font-bold text-slate-900 hover:underline dark:text-white">#{s.id}</Link></Td>
+                <Td className="font-medium">{s.employe}</Td>
+                <Td className="whitespace-nowrap text-slate-500">{dateTime(s.fermee_at)}</Td>
+                <Td className="tabular font-bold whitespace-nowrap text-red-600 dark:text-red-400">{fcfaSigned(s.ecart)}</Td>
+                <Td className="text-slate-600 dark:text-slate-300">{s.motif_ecart}</Td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </Card>
     </div>
   )
 }

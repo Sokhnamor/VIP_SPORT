@@ -1,3 +1,4 @@
+import { Building2, Clock, Save, ScanLine } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Alert, Button, Card, Field, Input, Loading, PageHeader } from '../../components/ui'
@@ -48,11 +49,11 @@ function SettingsForm({ initial }: { initial: SettingsType }) {
 
   return (
     <div className="max-w-3xl space-y-5">
-      <PageHeader title="Paramètres" />
+      <PageHeader eyebrow="Configuration" title="Paramètres" />
       {saved && <Alert tone="green">Paramètres enregistrés.</Alert>}
       {error && <Alert>{error.errors ? Object.values(error.errors).flat().join(' ') : error.message}</Alert>}
 
-      <Card title="La salle">
+      <Card title="La salle" icon={Building2}>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Nom de la salle"><Input value={values.nom_salle} onChange={(e) => set('nom_salle', e.target.value)} /></Field>
           <Field label="Téléphone"><Input value={values.telephone ?? ''} onChange={(e) => set('telephone', e.target.value)} /></Field>
@@ -64,14 +65,14 @@ function SettingsForm({ initial }: { initial: SettingsType }) {
         </div>
       </Card>
 
-      <Card title="Horaires">
+      <Card title="Horaires" icon={Clock}>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Ouverture"><Input type="time" value={values.heure_ouverture} onChange={(e) => set('heure_ouverture', e.target.value)} /></Field>
           <Field label="Fermeture" hint="Les présences encore ouvertes sont clôturées automatiquement à cette heure."><Input type="time" value={values.heure_fermeture} onChange={(e) => set('heure_fermeture', e.target.value)} /></Field>
         </div>
       </Card>
 
-      <Card title="Contrôle d'accès et alertes">
+      <Card title="Contrôle d'accès et alertes" icon={ScanLine}>
         <div className="space-y-3">
           <label className="flex min-h-11 items-center gap-3 font-medium">
             <input type="checkbox" className="size-5" checked={values.une_entree_par_jour} onChange={(e) => set('une_entree_par_jour', e.target.checked)} />
@@ -89,7 +90,7 @@ function SettingsForm({ initial }: { initial: SettingsType }) {
         </div>
       </Card>
 
-      <Button size="lg" onClick={save} loading={loading}>Enregistrer les paramètres</Button>
+      <Button size="lg" icon={Save} onClick={save} loading={loading}>Enregistrer les paramètres</Button>
     </div>
   )
 }

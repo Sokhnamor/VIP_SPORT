@@ -1,3 +1,4 @@
+import { BarChart3, FileSpreadsheet, FileDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Alert, Button, Card, Empty, Field, Input, Loading, PageHeader, Select, Table, Td, cx } from '../../components/ui'
@@ -41,7 +42,7 @@ export default function Reports() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Rapports" />
+      <PageHeader eyebrow="Pilotage" title="Rapports" subtitle="Filtrez une période, consultez, exportez en CSV (Excel) ou PDF." />
       <Card>
         <div className="grid gap-3 md:grid-cols-4">
           <Field label="Rapport">
@@ -59,18 +60,18 @@ export default function Reports() {
           )}
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => preset(todayIso(), todayIso())}>Aujourd'hui</Button>
-          <Button variant="secondary" onClick={() => preset(daysAgoIso(1), daysAgoIso(1))}>Hier</Button>
-          <Button variant="secondary" onClick={() => preset(daysAgoIso(6), todayIso())}>7 jours</Button>
-          <Button variant="secondary" onClick={() => preset(todayIso().slice(0, 8) + '01', todayIso())}>Ce mois</Button>
-          <Button variant="secondary" onClick={() => preset(daysAgoIso(29), todayIso())}>30 jours</Button>
+          <Button variant="secondary" size="sm" onClick={() => preset(todayIso(), todayIso())}>Aujourd'hui</Button>
+          <Button variant="secondary" size="sm" onClick={() => preset(daysAgoIso(1), daysAgoIso(1))}>Hier</Button>
+          <Button variant="secondary" size="sm" onClick={() => preset(daysAgoIso(6), todayIso())}>7 jours</Button>
+          <Button variant="secondary" size="sm" onClick={() => preset(todayIso().slice(0, 8) + '01', todayIso())}>Ce mois</Button>
+          <Button variant="secondary" size="sm" onClick={() => preset(daysAgoIso(29), todayIso())}>30 jours</Button>
           <span className="flex-1" />
-          <Button onClick={() => openDocument(`reports/${type}` + qs({ ...params, format: 'csv' }))}>Export CSV</Button>
-          <Button onClick={() => openDocument(`reports/${type}` + qs({ ...params, format: 'pdf' }))}>Export PDF</Button>
+          <Button variant="secondary" icon={FileSpreadsheet} onClick={() => openDocument(`reports/${type}` + qs({ ...params, format: 'csv' }))}>Export CSV</Button>
+          <Button icon={FileDown} onClick={() => openDocument(`reports/${type}` + qs({ ...params, format: 'pdf' }))}>Export PDF</Button>
         </div>
       </Card>
 
-      <Card title={report.data?.table.titre}>
+      <Card title={report.data?.table.titre} icon={BarChart3}>
         {report.isLoading && <Loading />}
         {report.error && <Alert>{errorMessage(report.error)}</Alert>}
         {report.data && report.data.table.lignes.length === 0 && <Empty>Aucune donnée sur la période.</Empty>}

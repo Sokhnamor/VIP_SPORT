@@ -1,3 +1,4 @@
+import { FileText, Plus } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { ReasonModal } from '../../components/ReasonModal'
@@ -36,7 +37,7 @@ export default function Expenses() {
 
   return (
     <div>
-      <PageHeader title="Dépenses" actions={<Button onClick={() => setFormOpen(true)}>+ Nouvelle dépense</Button>} />
+      <PageHeader eyebrow="Gestion" title="Dépenses" subtitle="Saisie, justificatifs et validation par le patron." actions={<Button icon={Plus} onClick={() => setFormOpen(true)}>Nouvelle dépense</Button>} />
       {feedback && <div className="mb-4"><Alert tone="green">{feedback}</Alert></div>}
 
       <Card>
@@ -53,7 +54,7 @@ export default function Expenses() {
         </div>
 
         {expenses.isLoading && <Loading />}
-        {expenses.data?.data.length === 0 && <Empty>Aucune dépense.</Empty>}
+        {expenses.data?.data.length === 0 && <Empty icon={FileText}>Aucune dépense.</Empty>}
         {expenses.data && expenses.data.data.length > 0 && (
           <Table head={['Date', 'Catégorie', 'Description', 'Montant', 'Mode', 'Auteur', 'Statut', '']}>
             {expenses.data.data.map((e) => (

@@ -1,3 +1,4 @@
+import { Save } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
@@ -77,7 +78,7 @@ export default function MemberForm() {
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title={editing ? 'Modifier le membre' : 'Nouveau membre'} />
+      <PageHeader eyebrow="Membres" title={editing ? 'Modifier le membre' : 'Nouveau membre'} subtitle="Le téléphone sert d'identifiant unique ; la photo est vérifiée à chaque entrée." />
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <Card>
           <div className="space-y-4">
@@ -135,7 +136,7 @@ export default function MemberForm() {
         </Card>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="submit" size="lg" loading={formState.isSubmitting}>{editing ? 'Enregistrer' : 'Créer le membre'}</Button>
+          <Button type="submit" size="lg" icon={Save} loading={formState.isSubmitting}>{editing ? 'Enregistrer' : 'Créer le membre'}</Button>
           <Button type="button" size="lg" variant="secondary" onClick={() => navigate(-1)}>Annuler</Button>
         </div>
       </form>
