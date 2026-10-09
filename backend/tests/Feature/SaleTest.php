@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\Ticket;
 use App\Services\SubscriptionService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 use RuntimeException;
@@ -171,6 +172,32 @@ class SaleTest extends TestCase
         }
 
         $this->assertSame(20000, $payment->fresh()->montant_encaisse);
+    }
+
+    /** Défense en profondeur : même en SQL direct, MySQL refuse de modifier ou supprimer un paiement. */
+    public function test_la_base_mysql_refuse_toute_modification_d_un_paiement(): void
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            $this->markTestSkipped('Triggers d\'immuabilité : MySQL uniquement.');
+        }
+
+        $this->memberWithSubscription();
+        $id = $this->lastPayment()->id;
+
+        foreach ([
+            fn () => DB::table('payments')->where('id', $id)->update(['montant_encaisse' => 1]),
+            fn () => DB::table('payments')->where('id', $id)->delete(),
+            fn () => DB::table('audit_logs')->delete(),
+        ] as $attempt) {
+            try {
+                $attempt();
+                $this->fail('La base aurait dû refuser l\'opération.');
+            } catch (QueryException $e) {
+                $this->assertStringContainsString('lecture seule', $e->getMessage());
+            }
+        }
+
+        $this->assertSame(20000, (int) DB::table('payments')->where('id', $id)->value('montant_encaisse'));
     }
 
     /** §11.7 (partie paiement) : l'annulation crée un enregistrement lié, le paiement reste intact. */
