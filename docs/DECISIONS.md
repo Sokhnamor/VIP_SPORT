@@ -181,3 +181,9 @@ Sport_app/
 - PDF : sous-ensemble de police embarqué (un reçu pèse ~20 Ko au lieu de ~860 Ko).
 - Docker : un seul `.env` à la racine pour Compose ; MySQL lancé avec
   `--log-bin-trust-function-creators=1` pour autoriser les triggers d'immuabilité.
+
+### Page de connexion
+- Fond : photo Unsplash `photo-1517836357463-d25dfeac3438` (licence Unsplash : usage commercial
+  gratuit, sans attribution obligatoire), embarquée dans `frontend/src/assets/` en WebP (≈ 460 Ko
+  ordinateur, ≈ 190 Ko mobile) : aucune requête vers un site externe au chargement.
+  Pour utiliser une photo de la vraie salle : remplacer ces deux fichiers (mêmes noms).

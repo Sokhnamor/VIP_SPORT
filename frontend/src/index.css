@@ -36,6 +36,17 @@
   --animate-rise: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-pop: pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-scan-line: scan-line 2.2s ease-in-out infinite;
+  --animate-ken: ken 24s ease-out both;
+  --animate-float: float 7s ease-in-out infinite;
+
+  @keyframes ken {
+    from { transform: scale(1.12); }
+    to { transform: scale(1); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
 
   @keyframes rise {
     from { opacity: 0; transform: translateY(10px); }
