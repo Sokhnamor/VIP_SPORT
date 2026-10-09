@@ -187,3 +187,6 @@ Sport_app/
   gratuit, sans attribution obligatoire), embarquée dans `frontend/src/assets/` en WebP (≈ 460 Ko
   ordinateur, ≈ 190 Ko mobile) : aucune requête vers un site externe au chargement.
   Pour utiliser une photo de la vraie salle : remplacer ces deux fichiers (mêmes noms).
+- Moteur MySQL forcé à **InnoDB** (`config/database.php`) : certains serveurs (WAMP notamment)
+  créent les tables en MyISAM par défaut, qui ignore transactions et clés étrangères — ce qui
+  casserait l'atomicité paiement + abonnement + QR.
