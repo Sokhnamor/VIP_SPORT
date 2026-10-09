@@ -52,10 +52,18 @@ class DemoSeeder extends Seeder
         // Date réelle figée AVANT tout voyage dans le temps.
         $today = Dates::today();
         $start = $today->subDays(45);
-        $members = Member::factory()->count(45)->create([
+        // Sans Faker (dépendance de développement absente de l'image de production).
+        $prenoms = ['Moussa', 'Awa', 'Ibrahima', 'Fatou', 'Cheikh', 'Aminata', 'Mamadou', 'Khady', 'Ousmane', 'Mariama', 'Abdoulaye', 'Ndèye', 'Babacar', 'Coumba', 'Serigne'];
+        $noms = ['Diop', 'Ndiaye', 'Fall', 'Sow', 'Diallo', 'Gueye', 'Sarr', 'Faye', 'Ba', 'Mbaye', 'Cissé', 'Thiam', 'Seck', 'Kane', 'Niang'];
+        $members = collect(range(1, 45))->map(fn (int $i) => Member::create([
+            'prenom' => $prenoms[$i % count($prenoms)],
+            'nom' => $noms[intdiv($i, count($prenoms)) * 5 % count($noms) + $i % 5],
+            'telephone' => '+22177'.str_pad((string) (1000000 + $i * 7919), 7, '0', STR_PAD_LEFT),
+            'sexe' => $i % 2 ? 'M' : 'F',
             'date_inscription' => $start->toDateString(),
+            'statut' => 'actif',
             'created_by' => $awa->id,
-        ]);
+        ]));
 
         $toSell = $members->shuffle()->values();
         $modes = [PaymentMode::Especes, PaymentMode::Especes, PaymentMode::Especes, PaymentMode::Wave, PaymentMode::OrangeMoney];
