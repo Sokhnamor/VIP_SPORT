@@ -135,3 +135,49 @@ Sport_app/
   passe », « moi » et « déconnexion » renvoie 403 tant que le mot de passe n'est pas changé.
 - Mot de passe fort : 10 caractères minimum, majuscules, minuscules, chiffres
   (et vérification contre les fuites connues en production).
+
+### Rapports
+- **Recettes nettes d'une période = Σ paiements créés dans la période − Σ montants des paiements
+  annulés dans la période** (l'annulation compte à la date où elle est faite). Une période passée
+  ne change donc jamais après coup ; une annulation tardive apparaît le jour de l'annulation.
+  Cette définition unique est utilisée par le tableau de bord, les rapports et les exports (§11.14).
+- **Taux de renouvellement** : parmi les abonnements non annulés arrivés à échéance dans la période,
+  part des membres ayant un abonnement ultérieur qui commence au plus tard 30 jours après la fin.
+- Les agrégations par jour et par heure sont faites en PHP dans le fuseau de la salle (portable
+  MySQL / SQLite, exact quel que soit le fuseau).
+- Exports CSV : séparateur `;` et BOM UTF-8, pour une ouverture directe dans Excel en français.
+
+### Membres et données personnelles
+- Archivage, anonymisation, export et régénération du QR : **admin uniquement** (option la plus
+  restrictive ; le réceptionniste « crée et modifie »).
+- L'anonymisation efface identité, contact, photo et QR, mais conserve l'historique financier
+  et des accès (obligation de traçabilité des encaissements).
+- Chaque consultation de fiche membre et chaque export sont journalisés dans l'audit.
+- Les photos sont servies uniquement via une **URL signée valable 60 min** (le poste de scan peut
+  afficher la photo du membre scanné sans avoir accès aux fiches ni pouvoir énumérer les photos).
+- Recherche : correspondance sans accents ni casse sur nom, prénom et téléphone ; à défaut,
+  recherche approchée (distance de Levenshtein ≤ 1 ou 2 selon la longueur du mot).
+
+### QR et tickets
+- Jeton encodé en base32 majuscule (32 caractères, 160 bits) : saisissable à la main sans
+  ambiguïté de casse. Le code complet est imprimé sous le QR de la carte membre.
+- Le ticket a un **numéro court** `T-XXXXXXXX` (8 caractères, ~40 bits) accepté en saisie
+  manuelle au poste de scan ; la force brute est empêchée par la limite de 10 codes inconnus
+  par minute et par appareil. Le message WhatsApp contient ce numéro (wa.me ne permet pas
+  d'envoyer une image ; aucune page publique du QR n'est exposée).
+
+### Divers
+- Paiement partiel : non pris en charge (le montant encaissé doit égaler montant dû − réduction).
+- Entrée manuelle : soumise aux mêmes règles que le scan (un abonnement invalide reste refusé).
+- Mode hors ligne du poste de scan : hors MVP. Le service worker ne met en cache que l'interface,
+  jamais l'API ; en cas de coupure, l'écran l'indique clairement et aucun scan n'est décidé.
+  Structure prévue pour plus tard : une file locale de scans « à confirmer », rejouée et
+  décidée par le serveur au retour du réseau (aucune décision prise côté appareil).
+- Le front n'applique aucune règle métier : il affiche les montants, périodes et décisions
+  renvoyés par l'API ; l'écart de caisse affiché avant clôture n'est qu'un aperçu, recalculé
+  et enregistré par le serveur.
+- Graphiques : une série par graphique (pas de légende), couleur de la palette catégorielle
+  validée (bleu, pas distinct en mode sombre), vue tableau toujours disponible.
+- PDF : sous-ensemble de police embarqué (un reçu pèse ~20 Ko au lieu de ~860 Ko).
+- Docker : un seul `.env` à la racine pour Compose ; MySQL lancé avec
+  `--log-bin-trust-function-creators=1` pour autoriser les triggers d'immuabilité.
